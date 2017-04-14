@@ -1,0 +1,11 @@
+<!-- example request -->
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:gs="http://www.geworkbench.org/service/pbqdi">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <gs:pbqdiRequest>
+        <gs:tumorType>gbm</gs:tumorType>
+        <gs:sampleFile>CUAC1468.txt</gs:sampleFile>
+        <fileContent>...to be or not to be...</fileContent>
+      </gs:pbqdiRequest>
+   </soapenv:Body>
+</soapenv:Envelope>
