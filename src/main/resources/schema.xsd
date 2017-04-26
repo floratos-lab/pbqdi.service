@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema xmlns="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified"
-        targetNamespace="http://www.geworkbench.org/service/pbqdi">
+        targetNamespace="http://www.geworkbench.org/service/pbqdi"
+        xmlns:xmime="http://www.w3.org/2005/05/xmlmime">
 
     <element name="pbqdiRequest">
         <complexType>
@@ -14,10 +15,10 @@
     <element name="pbqdiResponse">
         <complexType>
             <all>
-                <element name="pdfreport" type="string"/>
-                <element name="oncology" type="string"/>
-                <element name="non-oncology" type="string"/>
-                <element name="investigational" type="string"/>
+                <element name="sampleNames" type="string"/>
+                <element name="tumorType" type="string"/>
+                <element name="classAssignment" type="string"/>
+                <element name="resultPackage" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
             </all>
         </complexType>
     </element>

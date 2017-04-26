@@ -9,6 +9,31 @@
 
     <context:component-scan base-package="org.geworkbench.service"/>
 
+    <bean id="defaultMethodEndpointAdapter"
+        class="org.springframework.ws.server.endpoint.adapter.DefaultMethodEndpointAdapter">
+        <property name="methodArgumentResolvers">
+            <list>
+                <ref bean="marshallingPayloadMethodProcessor" />
+            </list>
+        </property>
+        <property name="methodReturnValueHandlers">
+            <list>
+                <ref bean="marshallingPayloadMethodProcessor" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id="marshallingPayloadMethodProcessor"
+        class="org.springframework.ws.server.endpoint.adapter.method.MarshallingPayloadMethodProcessor">
+        <constructor-arg ref="marshaller" />
+        <constructor-arg ref="marshaller" />
+    </bean> 
+
+    <bean id="marshaller" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+        <property name="contextPath" value="org.geworkbench.service.pbqdi.schema" />
+        <property name="mtomEnabled" value="true" />
+    </bean>
+
     <sws:annotation-driven />
 
     <sws:dynamic-wsdl id="pbqdi-service" portTypeName="PBQDI_Service" locationUri="http://afdev.c2b2b.columbia.edu/pbqdi/">

@@ -1,5 +1,6 @@
 package org.geworkbench.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ws.server.endpoint.annotation.Endpoint;
 import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
 import org.springframework.ws.server.endpoint.annotation.RequestPayload;
@@ -16,19 +17,22 @@ public class PbqdiEndpoint {
     public static final String REQUEST_LOCAL_NAME = "pbqdiRequest";
     public static final String RESPONSE_LOCAL_NAME = "pbqdiResponse";
 
+    private final PbqdiService pbqdiService;
+
+    @Autowired
+    public PbqdiEndpoint(PbqdiService pbqdiService) {
+        this.pbqdiService = pbqdiService;
+    }
+
     @PayloadRoot(localPart = REQUEST_LOCAL_NAME, namespace = NAMESPACE_URI)
     @ResponsePayload
-    public JAXBElement<PbqdiResponse> handleRequest(@RequestPayload JAXBElement<PbqdiRequest> requestElement) {
-        PbqdiRequest x = requestElement.getValue();
+    public JAXBElement<PbqdiResponse> handleRequest(@RequestPayload PbqdiRequest x) {
         String tumorType = x.getTumorType();
         String sampleFile = x.getSampleFile();
         String content = x.getFileContent();
 
-        PbqdiResponse response = new PbqdiResponse();
-        response.setPdfreport("PDF for "+tumorType);
-        response.setOncology("ontology for "+sampleFile);
-        response.setNonOncology("non-ontology result");
-        response.setInvestigational("investigational result");
+        PbqdiResponse response = pbqdiService.execute(tumorType, sampleFile, content);
+
         QName qname = new QName(PbqdiEndpoint.NAMESPACE_URI, PbqdiEndpoint.RESPONSE_LOCAL_NAME);
         JAXBElement<PbqdiResponse> responseElement = new JAXBElement<PbqdiResponse>(qname, PbqdiResponse.class, response);
 
