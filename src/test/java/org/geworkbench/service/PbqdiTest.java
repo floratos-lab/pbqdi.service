@@ -10,6 +10,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.io.File;
+import java.io.FileReader;
+import java.io.BufferedReader;
 
 import javax.activation.DataHandler;
 import javax.xml.bind.JAXBElement;
@@ -21,16 +23,30 @@ import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.ws.client.core.WebServiceTemplate;
 import org.springframework.ws.soap.saaj.SaajSoapMessageFactory;
 
-public class PbqdiTest extends TestCase {
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
-     public void test() {
+public class PbqdiTest extends TestCase {
+    Log log = LogFactory.getLog(PbqdiTest.class);
+    public void test() throws IOException {
         PbqdiRequest request = new PbqdiRequest();
-        request.setTumorType("tumor1");
+        request.setTumorType("gbm");
         request.setSampleFile("sample1");
+
+        BufferedReader br = new BufferedReader(new FileReader("F:\\cptac_project\\test1\\CUAC1468.txt"));
+        StringBuffer sb = new StringBuffer();
+        String line = br.readLine();
+        while(line!=null) {
+            sb.append(line).append('\n');
+            line = br.readLine();
+        }
+        br.close();
+        request.setFileContent(sb.toString());
+
         PbqdiEndpoint endpoint = new PbqdiEndpoint(new PbqdiService());
         JAXBElement<PbqdiResponse> responseElement = endpoint.handleRequest(request);
         PbqdiResponse response = responseElement.getValue();
-        assertTrue("incorrect tumor type '"+response.getTumorType()+"'", response.getTumorType().equals("tumor1"));
+        assertTrue("incorrect tumor type '"+response.getTumorType()+"'", response.getTumorType().equals("gbm"));
         //assertTrue("incorrect class assignment "+response.getClassAssignment(), response.getClassAssignment().equals("... to be added"));
         //assertTrue("incorrect sample names "+response.getSampleNames(), response.getSampleNames().equals("...to be added"));
 
@@ -55,10 +71,21 @@ public class PbqdiTest extends TestCase {
         // TODO do something with ZIP file, e.g. checking the number of files and some file names
      }
 
-    public void test_web() throws JAXBException, SOAPException { /* test web services locally deployed */
+    public void test_web() throws JAXBException, SOAPException, IOException { /* test web services locally deployed */
         PbqdiRequest request = new PbqdiRequest();
-        request.setTumorType("tumor2");
+        request.setTumorType("gbm");
         request.setSampleFile("sample2");
+
+        BufferedReader br = new BufferedReader(new FileReader("F:\\cptac_project\\test1\\CUAC1468.txt"));
+        StringBuffer sb = new StringBuffer();
+        String line = br.readLine();
+        while(line!=null) {
+            sb.append(line).append('\n');
+            line = br.readLine();
+        }
+        br.close();
+        request.setFileContent(sb.toString());
+
         QName qname = new QName(PbqdiEndpoint.NAMESPACE_URI, PbqdiEndpoint.REQUEST_LOCAL_NAME);
         JAXBElement<PbqdiRequest> requestElement = new JAXBElement<PbqdiRequest>(qname, PbqdiRequest.class, request);
         assertFalse(requestElement==null);
@@ -72,7 +99,7 @@ public class PbqdiTest extends TestCase {
         template.setUnmarshaller(marshaller);
 
         PbqdiResponse response = (PbqdiResponse)template.marshalSendAndReceive("http://localhost:8080/pbqdi", requestElement);
-        assertTrue("incorrect tumor type '"+response.getTumorType()+"'", response.getTumorType().equals("tumor2"));
+        assertTrue("incorrect tumor type '"+response.getTumorType()+"'", response.getTumorType().equals("gbm"));
         //assertTrue("incorrect class assignment "+response.getClassAssignment(), response.getClassAssignment().equals("... to be added"));
         //assertTrue("incorrect sample names "+response.getSampleNames(), response.getSampleNames().equals("...to be added"));
 
