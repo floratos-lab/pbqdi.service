@@ -6,8 +6,8 @@ import java.util.Random;
 
 public class DrugResult {
 
-    List<List<String>> images;
-    List<List<IndividualDrugInfo>> drugs;
+    final public List<List<String>> images;
+    final public List<List<IndividualDrugInfo>> drugs;
 
     public DrugResult(List<List<String>> images, List<List<IndividualDrugInfo>> drugs) {
         this.images = images;

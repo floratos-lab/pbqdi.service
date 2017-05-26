@@ -3,9 +3,9 @@ package org.geworkbench.plugins.pbqdi;
 import java.util.Random;
 
 public class IndividualDrugInfo {
-    String name;
-    String description;
-    String accession;
+    final public String name;
+    final public String description;
+    final public String accession;
 
     public IndividualDrugInfo(String name, String description, String accession) {
         this.name = name;

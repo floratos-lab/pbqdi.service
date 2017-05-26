@@ -35,6 +35,7 @@ import org.geworkbench.service.pbqdi.schema.PbqdiResponse;
 
 import org.geworkbench.plugins.pbqdi.DrugResult;
 import org.geworkbench.plugins.pbqdi.IndividualDrugInfo;
+import org.geworkbench.plugins.pbqdi.ResultData;
 
 @Service
 public class PbqdiService {
@@ -106,6 +107,7 @@ public class PbqdiService {
                 WORKING_DIRECTORY + "rununsupervised.r", tumorType, sampleFile, WORKING_DIRECTORY, ERROR_FILE);
         pb2.directory(new File(WORKING_DIRECTORY));
 
+        String reportFilename = null;
         try {
             Process process = pb2.start();
             if (log.isDebugEnabled()) {
@@ -117,7 +119,7 @@ public class PbqdiService {
                 }
             }
             int exit = process.waitFor();
-            String reportFilename = readPdfFileName(WORKING_DIRECTORY);
+            reportFilename = readPdfFileName(WORKING_DIRECTORY);
             if (exit != 0) {
                 log.error("something went wrong with drug report script: exit value " + exit);
                 return null;
@@ -133,10 +135,15 @@ public class PbqdiService {
         }
 
         String[] qualityImages = readQualitySection(WORKING_DIRECTORY, jobId);
-        DrugResult result1 = readDrugSection(WORKING_DIRECTORY+"oncology.txt", jobId);
-        DrugResult result2 = readDrugSection(WORKING_DIRECTORY+"non-oncology.txt", jobId);
-        DrugResult result3 = readDrugSection(WORKING_DIRECTORY+"investigational.txt", jobId);
-        // FIXME - not finished
+        DrugResult resultOncology = readDrugSection(WORKING_DIRECTORY+"oncology.txt", jobId);
+        DrugResult resultNononcology = readDrugSection(WORKING_DIRECTORY+"non-oncology.txt", jobId);
+        DrugResult resultInvestigational = readDrugSection(WORKING_DIRECTORY+"investigational.txt", jobId);
+
+        ResultData result = new ResultData(qualityImages, resultOncology, resultNononcology, resultInvestigational);
+
+        String reportPdf = reportFilename.substring(reportFilename.lastIndexOf("/"));
+        String htmlReport = WORKING_DIRECTORY + sampleFile.substring(0, sampleFile.lastIndexOf(".txt")) + ".html";
+        createHtmlReport(result, reportPdf, htmlReport);
 
         PbqdiResponse response = new PbqdiResponse();
         response.setTumorType(tumorType);
@@ -305,5 +312,94 @@ public class PbqdiService {
             e.printStackTrace();
         }
         return new DrugResult(images, drugs);
+    }
+
+    private static String accessionLink(String drugName, String accession) {
+        if (accession == null || accession.equals("NA"))
+            return "<b>"+drugName+"</b>. ";
+        else
+            return "<a href='http://www.drugbank.ca/drugs/" + accession + "' target=_blank><b>" + drugName + "</a></b>. ";
+    }
+
+    private void createHtmlReport(final ResultData result, final String reportPdf, final String htmlFile) {
+        DrugResult oncology = result.oncology;
+        List<List<String>> images = oncology.images;
+        List<List<IndividualDrugInfo>> drugs = oncology.drugs;
+
+        String openingHtmlContent = "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta http-equiv='X-UA-Compatible' content='IE=edge'><meta name='viewport' content='width=device-width, initial-scale=1'>"
+                + "<link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css'>"
+                + "<link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css'>"
+                + "</head><body>";
+
+        PrintWriter pw = null;
+        try {
+            pw = new PrintWriter(new FileWriter(htmlFile));
+            pw.print(openingHtmlContent);
+
+            pw.print("<div style='position:fixed;background:white;width:100%;z-index:999'><h1>Drug Prediction Report</h1><a href='/cptac/reports/" + reportPdf
+                    + "' target=_blank>Download Full Report as PDF</a> <a href='#dataquality'>Data Quality</a> <a href='#ontology'>Ontology drugs</a> <a href='#nonontology'>Nonontology drugs</a> <a href='#investigational'>Investigational drugs</a></div>");
+
+            pw.print("<div style='position:absolute;top:100px'>");
+            pw.print("<a id='dataquality' style='display:block;position:relative;top:-100px'></a><h2>Data Quality</h2>"
+                    + "<p>The figure below portrays indicators of data quality for the sample:</p>"
+                    + "<ul><li>Mapped Reads: the total number of mapped reads</li><li>Detected genes: the number of detected genes with at least 1 mapped read</li><li>Expressed genes: the number of expressed genes inferred from the distribution of the digital expression data</li></ul>");
+
+            for (int i = 0; i < result.dataQualityImages.length; i++) {
+                pw.print("<img src='"+result.dataQualityImages[i]+"' />");
+            }
+
+            pw.print("<h2>FDA Approved Drugs</h2><a id='ontology' style='display:block;position:relative;top:-100px'></a><h3>Oncology Drugs</h3><hr><table>");
+            for (int i = 0; i < images.size(); i++) {
+                pw.print("<tr style='border-top:1px solid black; border-bottom:1px solid black'><td>" + (i + 1) + "</td><td width='30%'>");
+                for (String img : images.get(i)) {
+                    pw.print("<img src='" + img + " '/>");
+                }
+                pw.print("</td><td valign=top width='70%'><ul>");
+                for (IndividualDrugInfo d : drugs.get(i)) {
+                    pw.print("<li>" + accessionLink(d.name, d.accession) + d.description + "</li>");
+                }
+                pw.print("</ul></td></tr>");
+            }
+            pw.print("</table><a id='nonontology' style='display:block;position:relative;top:-100px'></a><h3>Non-oncology Drugs</h3><table>");
+
+            DrugResult nononcology = result.nononcology;
+            images = nononcology.images;
+            drugs = nononcology.drugs;
+            for (int i = 0; i < images.size(); i++) {
+                pw.print("<tr style='border-top:1px solid black; border-bottom:1px solid black'><td>" + (i + 1) + "</td><td width='30%'>");
+                for (String img : images.get(i)) {
+                    pw.print("<img src='" + img + " '/>");
+                }
+                pw.print("</td><td valign=top width='70%'><ul>");
+                for (IndividualDrugInfo d : drugs.get(i)) {
+                    pw.print("<li>" + accessionLink(d.name, d.accession) + d.description + "</li>");
+                }
+                pw.print("</ul></td></tr>");
+            }
+            pw.print("</table>");
+
+            DrugResult investigational = result.investigational;
+            images = investigational.images;
+            drugs = investigational.drugs;
+
+            pw.print("<a id='investigational' style='display:block;position:relative;top:-100px'></a><h2>Investigational drugs</h1><table>");
+            for (int i = 0; i < images.size(); i++) {
+                pw.print("<tr style='border-top:1px solid black; border-bottom:1px solid black'><td>" + (i + 1) + "</td><td width='30%'>");
+                for (String img : images.get(i)) {
+                    pw.print("<img src='" + img + "' />");
+                }
+                pw.print("</td><td valign=top width='70%'><ul>");
+                for (IndividualDrugInfo d : drugs.get(i)) {
+                    pw.print("<li>" + accessionLink(d.name, d.accession) + d.description + "</li>");
+                }
+                pw.print("</ul></td></tr>");
+            }
+            pw.print("</table>");
+
+            pw.print("</div></body></html>");
+            pw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
