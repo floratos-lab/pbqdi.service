@@ -21,7 +21,7 @@ This web service provies Patient-Based Query and Data Integration (PBQDI) for th
 
 ## Dependency:
 
-For this service to run, you need R installed, a number of required librarys, and the following R scripts and starting data files that are not included in the github repository
+For this service to run, you need R installed, a number of required libraries, and the following R scripts and starting data files that are not included in the github repository
 due to copyright difference:
 1. classifySamples.r
 1. rununsupervised.r
