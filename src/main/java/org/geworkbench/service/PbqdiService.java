@@ -10,20 +10,14 @@ import java.io.IOException;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 import java.util.Properties;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 import javax.activation.DataHandler;
 import javax.activation.FileDataSource;
@@ -134,21 +128,20 @@ public class PbqdiService {
         DrugResult resultNononcology = readDrugSection(WORKING_DIRECTORY+"non-oncology.txt", WORKING_DIRECTORY);
         DrugResult resultInvestigational = readDrugSection(WORKING_DIRECTORY+"investigational.txt", WORKING_DIRECTORY);
 
-        ResultData result = new ResultData(qualityImages, resultOncology, resultNononcology, resultInvestigational);
-
         String reportPdf = reportFilename.substring(reportFilename.lastIndexOf("/"));
         String htmlReport = sampleFile.substring(0, sampleFile.lastIndexOf(".txt")) + ".html";
-        createHtmlReport(result, reportPdf, WORKING_DIRECTORY + htmlReport);
+
+        ResultData result = new ResultData(qualityImages, resultOncology, resultNononcology, resultInvestigational,
+            reportPdf, htmlReport, WORKING_DIRECTORY);
 
         PbqdiResponse response = new PbqdiResponse();
         response.setTumorType(tumorType);
         response.setSampleNames("THIS_SHOUDLD_BE_A_LIST");
         response.setClassAssignment("THIS_SHOUDLD_BE_A_MAP");
 
-        // the zip file contains one HTML, one PDF, and a number of PNG files
         String zipfile = TEMP_DIR+"result"+jobId+".zip";
         try{
-            zip(zipfile, WORKING_DIRECTORY, reportPdf, qualityImages, resultOncology, resultNononcology, resultInvestigational, htmlReport);
+            result.zip(zipfile);
         } catch(IOException e) {
             e.printStackTrace();
         }
@@ -157,84 +150,6 @@ public class PbqdiService {
         response.setResultPackage(new DataHandler(new FileDataSource(file)));
 
         return response;
-    }
-
-    static private void zip(final String zipfile, final String workingDIrectory, String reportPdf,
-            final String[] qualityImages, DrugResult resultOncology, DrugResult resultNononcology, DrugResult resultInvestigational,
-            final String htmlReport) throws IOException {
-        ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipfile));
-        for(String image: qualityImages) {
-                Path path = Paths.get(workingDIrectory+image);
-                if(!path.toFile().exists()) {
-                    log.error("image file "+path.toFile()+" not found");
-                    continue; 
-                }
-                zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
-                zipOutputStream.write(Files.readAllBytes( path ));
-                zipOutputStream.closeEntry();
-        }
-
-        Set<String> addedImages = new TreeSet<String>();
-        for(List<String> images: resultOncology.images) {
-            for(String image: images) {
-                    if(addedImages.contains(image)) {
-                        continue;
-                    }
-                    addedImages.add(image);
-                    Path path = Paths.get(workingDIrectory+image);
-                    if(!path.toFile().exists()) {
-                        log.error("image file "+path.toFile()+" not found");
-                        continue; 
-                    }
-                    zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
-                    zipOutputStream.write(Files.readAllBytes( path ));
-                    zipOutputStream.closeEntry();
-            }
-        }
-        for(List<String> images: resultNononcology.images) {
-            for(String image: images) {
-                    if(addedImages.contains(image)) {
-                        continue;
-                    }
-                    addedImages.add(image);
-                    Path path = Paths.get(workingDIrectory+image);
-                    if(!path.toFile().exists()) {
-                        log.error("image file "+path.toFile()+" not found");
-                        continue; 
-                    }
-                    zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
-                    zipOutputStream.write(Files.readAllBytes( path ));
-                    zipOutputStream.closeEntry();
-            }
-        }
-        for(List<String> images: resultInvestigational.images) {
-            for(String image: images) {
-                    if(addedImages.contains(image)) {
-                        continue;
-                    }
-                    addedImages.add(image);
-                    Path path = Paths.get(workingDIrectory+image);
-                    if(!path.toFile().exists()) {
-                        log.error("image file "+path.toFile()+" not found");
-                        continue; 
-                    }
-                    zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
-                    zipOutputStream.write(Files.readAllBytes( path ));
-                    zipOutputStream.closeEntry();
-            }
-        }
-
-        Path path = Paths.get(workingDIrectory+reportPdf);
-        zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
-        zipOutputStream.write(Files.readAllBytes( path ));
-        zipOutputStream.closeEntry();
-
-        path = Paths.get(workingDIrectory+htmlReport);
-        zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
-        zipOutputStream.write(Files.readAllBytes( path ));
-        zipOutputStream.closeEntry();
-
-        zipOutputStream.close();
     }
 
     private static void prepareSourceFiles(String sourceDir, String targetDir, String sampleFile, String content)
@@ -375,92 +290,4 @@ public class PbqdiService {
         return new DrugResult(images, drugs);
     }
 
-    private static String accessionLink(String drugName, String accession) {
-        if (accession == null || accession.equals("NA"))
-            return "<b>"+drugName+"</b>. ";
-        else
-            return "<a href='http://www.drugbank.ca/drugs/" + accession + "' target=_blank><b>" + drugName + "</a></b>. ";
-    }
-
-    private void createHtmlReport(final ResultData result, final String reportPdf, final String htmlFile) {
-        DrugResult oncology = result.oncology;
-        List<List<String>> images = oncology.images;
-        List<List<IndividualDrugInfo>> drugs = oncology.drugs;
-
-        String openingHtmlContent = "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta http-equiv='X-UA-Compatible' content='IE=edge'><meta name='viewport' content='width=device-width, initial-scale=1'>"
-                + "<link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css'>"
-                + "<link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css'>"
-                + "</head><body>";
-
-        PrintWriter pw = null;
-        try {
-            pw = new PrintWriter(new FileWriter(htmlFile));
-            pw.print(openingHtmlContent);
-
-            pw.print("<div style='position:fixed;background:white;width:100%;z-index:999'><h1>Drug Prediction Report</h1><a href='./" + reportPdf
-                    + "' target=_blank>Download Full Report as PDF</a> <a href='#dataquality'>Data Quality</a> <a href='#ontology'>Ontology drugs</a> <a href='#nonontology'>Nonontology drugs</a> <a href='#investigational'>Investigational drugs</a></div>");
-
-            pw.print("<div style='position:absolute;top:100px'>");
-            pw.print("<a id='dataquality' style='display:block;position:relative;top:-100px'></a><h2>Data Quality</h2>"
-                    + "<p>The figure below portrays indicators of data quality for the sample:</p>"
-                    + "<ul><li>Mapped Reads: the total number of mapped reads</li><li>Detected genes: the number of detected genes with at least 1 mapped read</li><li>Expressed genes: the number of expressed genes inferred from the distribution of the digital expression data</li></ul>");
-
-            for (int i = 0; i < result.dataQualityImages.length; i++) {
-                pw.print("<img src='"+result.dataQualityImages[i]+"' />");
-            }
-
-            pw.print("<h2>FDA Approved Drugs</h2><a id='ontology' style='display:block;position:relative;top:-100px'></a><h3>Oncology Drugs</h3><hr><table>");
-            for (int i = 0; i < images.size(); i++) {
-                pw.print("<tr style='border-top:1px solid black; border-bottom:1px solid black'><td>" + (i + 1) + "</td><td width='30%'>");
-                for (String img : images.get(i)) {
-                    pw.print("<img src='" + img + " '/>");
-                }
-                pw.print("</td><td valign=top width='70%'><ul>");
-                for (IndividualDrugInfo d : drugs.get(i)) {
-                    pw.print("<li>" + accessionLink(d.name, d.accession) + d.description + "</li>");
-                }
-                pw.print("</ul></td></tr>");
-            }
-            pw.print("</table><a id='nonontology' style='display:block;position:relative;top:-100px'></a><h3>Non-oncology Drugs</h3><table>");
-
-            DrugResult nononcology = result.nononcology;
-            images = nononcology.images;
-            drugs = nononcology.drugs;
-            for (int i = 0; i < images.size(); i++) {
-                pw.print("<tr style='border-top:1px solid black; border-bottom:1px solid black'><td>" + (i + 1) + "</td><td width='30%'>");
-                for (String img : images.get(i)) {
-                    pw.print("<img src='" + img + " '/>");
-                }
-                pw.print("</td><td valign=top width='70%'><ul>");
-                for (IndividualDrugInfo d : drugs.get(i)) {
-                    pw.print("<li>" + accessionLink(d.name, d.accession) + d.description + "</li>");
-                }
-                pw.print("</ul></td></tr>");
-            }
-            pw.print("</table>");
-
-            DrugResult investigational = result.investigational;
-            images = investigational.images;
-            drugs = investigational.drugs;
-
-            pw.print("<a id='investigational' style='display:block;position:relative;top:-100px'></a><h2>Investigational drugs</h1><table>");
-            for (int i = 0; i < images.size(); i++) {
-                pw.print("<tr style='border-top:1px solid black; border-bottom:1px solid black'><td>" + (i + 1) + "</td><td width='30%'>");
-                for (String img : images.get(i)) {
-                    pw.print("<img src='" + img + "' />");
-                }
-                pw.print("</td><td valign=top width='70%'><ul>");
-                for (IndividualDrugInfo d : drugs.get(i)) {
-                    pw.print("<li>" + accessionLink(d.name, d.accession) + d.description + "</li>");
-                }
-                pw.print("</ul></td></tr>");
-            }
-            pw.print("</table>");
-
-            pw.print("</div></body></html>");
-            pw.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 }
