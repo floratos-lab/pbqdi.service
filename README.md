@@ -16,8 +16,10 @@ This web service provies Patient-Based Query and Data Integration (PBQDI) for th
 ### This zipped package includes the following entries:
 
   * one HTML file
-  * images
-  * PDF files
+  * one PDF file
+  * a number of image files. They are referenced from four different sections of the HTML file (the 'report'):
+  one group for data quality, and the three groups for different categories of drugs, namely ontological, non-oncological, and investigational.
+  The same image may show up in more than one categories of the drugs.
 
 ## Dependency:
 

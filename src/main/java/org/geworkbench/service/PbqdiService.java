@@ -3,11 +3,9 @@ package org.geworkbench.service;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.FileWriter;
 import java.io.PrintWriter;
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.FileReader;
 import java.io.BufferedReader;
@@ -22,6 +20,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.Properties;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -39,7 +39,7 @@ import org.geworkbench.plugins.pbqdi.ResultData;
 
 @Service
 public class PbqdiService {
-    Log log = LogFactory.getLog(PbqdiService.class);
+    private static Log log = LogFactory.getLog(PbqdiService.class);
 
     private final String R_PATH;
     private final String BASE_WORKING_DIRECTORY;
@@ -137,8 +137,8 @@ public class PbqdiService {
         ResultData result = new ResultData(qualityImages, resultOncology, resultNononcology, resultInvestigational);
 
         String reportPdf = reportFilename.substring(reportFilename.lastIndexOf("/"));
-        String htmlReport = WORKING_DIRECTORY + sampleFile.substring(0, sampleFile.lastIndexOf(".txt")) + ".html";
-        createHtmlReport(result, reportPdf, htmlReport);
+        String htmlReport = sampleFile.substring(0, sampleFile.lastIndexOf(".txt")) + ".html";
+        createHtmlReport(result, reportPdf, WORKING_DIRECTORY + htmlReport);
 
         PbqdiResponse response = new PbqdiResponse();
         response.setTumorType(tumorType);
@@ -148,19 +148,7 @@ public class PbqdiService {
         // the zip file contains one HTML, one PDF, and a number of PNG files
         String zipfile = TEMP_DIR+"result"+jobId+".zip";
         try{
-            ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipfile));
-            for(String image: qualityImages) {
-                Path path = Paths.get(WORKING_DIRECTORY+image);
-                if(!path.toFile().exists()) {
-                    log.error("image file "+path.toFile()+" not found");
-                    continue; 
-                }
-                zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
-                zipOutputStream.write(Files.readAllBytes( path ));
-                zipOutputStream.closeEntry();
-            }
-
-            zipOutputStream.close();
+            zip(zipfile, WORKING_DIRECTORY, reportPdf, qualityImages, resultOncology, resultNononcology, resultInvestigational, htmlReport);
         } catch(IOException e) {
             e.printStackTrace();
         }
@@ -169,6 +157,84 @@ public class PbqdiService {
         response.setResultPackage(new DataHandler(new FileDataSource(file)));
 
         return response;
+    }
+
+    static private void zip(final String zipfile, final String workingDIrectory, String reportPdf,
+            final String[] qualityImages, DrugResult resultOncology, DrugResult resultNononcology, DrugResult resultInvestigational,
+            final String htmlReport) throws IOException {
+        ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipfile));
+        for(String image: qualityImages) {
+                Path path = Paths.get(workingDIrectory+image);
+                if(!path.toFile().exists()) {
+                    log.error("image file "+path.toFile()+" not found");
+                    continue; 
+                }
+                zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
+                zipOutputStream.write(Files.readAllBytes( path ));
+                zipOutputStream.closeEntry();
+        }
+
+        Set<String> addedImages = new TreeSet<String>();
+        for(List<String> images: resultOncology.images) {
+            for(String image: images) {
+                    if(addedImages.contains(image)) {
+                        continue;
+                    }
+                    addedImages.add(image);
+                    Path path = Paths.get(workingDIrectory+image);
+                    if(!path.toFile().exists()) {
+                        log.error("image file "+path.toFile()+" not found");
+                        continue; 
+                    }
+                    zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
+                    zipOutputStream.write(Files.readAllBytes( path ));
+                    zipOutputStream.closeEntry();
+            }
+        }
+        for(List<String> images: resultNononcology.images) {
+            for(String image: images) {
+                    if(addedImages.contains(image)) {
+                        continue;
+                    }
+                    addedImages.add(image);
+                    Path path = Paths.get(workingDIrectory+image);
+                    if(!path.toFile().exists()) {
+                        log.error("image file "+path.toFile()+" not found");
+                        continue; 
+                    }
+                    zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
+                    zipOutputStream.write(Files.readAllBytes( path ));
+                    zipOutputStream.closeEntry();
+            }
+        }
+        for(List<String> images: resultInvestigational.images) {
+            for(String image: images) {
+                    if(addedImages.contains(image)) {
+                        continue;
+                    }
+                    addedImages.add(image);
+                    Path path = Paths.get(workingDIrectory+image);
+                    if(!path.toFile().exists()) {
+                        log.error("image file "+path.toFile()+" not found");
+                        continue; 
+                    }
+                    zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
+                    zipOutputStream.write(Files.readAllBytes( path ));
+                    zipOutputStream.closeEntry();
+            }
+        }
+
+        Path path = Paths.get(workingDIrectory+reportPdf);
+        zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
+        zipOutputStream.write(Files.readAllBytes( path ));
+        zipOutputStream.closeEntry();
+
+        path = Paths.get(workingDIrectory+htmlReport);
+        zipOutputStream.putNextEntry(new ZipEntry( path.toFile().getName() ));
+        zipOutputStream.write(Files.readAllBytes( path ));
+        zipOutputStream.closeEntry();
+
+        zipOutputStream.close();
     }
 
     private static void prepareSourceFiles(String sourceDir, String targetDir, String sampleFile, String content)
