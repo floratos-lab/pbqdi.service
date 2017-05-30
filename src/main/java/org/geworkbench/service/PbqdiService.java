@@ -42,11 +42,9 @@ public class PbqdiService {
     Log log = LogFactory.getLog(PbqdiService.class);
 
     private final String R_PATH;
-    private final String OUTPUT_PATH;
     private final String BASE_WORKING_DIRECTORY;
     private final String SOURCE_SCRIPT_DIRECTORY;
     private final String ERROR_FILE;
-    private final String HTML_LOCATION;
     private final String TEMP_DIR;
 
     public PbqdiService() {
@@ -60,11 +58,9 @@ public class PbqdiService {
             e.printStackTrace();
         }
         R_PATH = prop.getProperty("r.path");
-        OUTPUT_PATH = prop.getProperty("pbqdi.output.path");
         BASE_WORKING_DIRECTORY = prop.getProperty("pbqdi.working.directory");
         SOURCE_SCRIPT_DIRECTORY = prop.getProperty("source.script.directory");
         ERROR_FILE = prop.getProperty("pbqdi.error.file");
-        HTML_LOCATION = prop.getProperty("html.location");
         TEMP_DIR = prop.getProperty("temp.directory");
     }
 
@@ -74,7 +70,6 @@ public class PbqdiService {
 
         try {
             prepareSourceFiles(SOURCE_SCRIPT_DIRECTORY, WORKING_DIRECTORY, sampleFile, content);
-            Files.createDirectories(FileSystems.getDefault().getPath(HTML_LOCATION + "pbqdi_run/" + jobId + "/"));
         } catch (IOException e) {
             e.printStackTrace();
             return null;
@@ -134,10 +129,10 @@ public class PbqdiService {
             return null;
         }
 
-        String[] qualityImages = readQualitySection(WORKING_DIRECTORY, jobId);
-        DrugResult resultOncology = readDrugSection(WORKING_DIRECTORY+"oncology.txt", jobId);
-        DrugResult resultNononcology = readDrugSection(WORKING_DIRECTORY+"non-oncology.txt", jobId);
-        DrugResult resultInvestigational = readDrugSection(WORKING_DIRECTORY+"investigational.txt", jobId);
+        String[] qualityImages = readQualitySection(WORKING_DIRECTORY);
+        DrugResult resultOncology = readDrugSection(WORKING_DIRECTORY+"oncology.txt", WORKING_DIRECTORY);
+        DrugResult resultNononcology = readDrugSection(WORKING_DIRECTORY+"non-oncology.txt", WORKING_DIRECTORY);
+        DrugResult resultInvestigational = readDrugSection(WORKING_DIRECTORY+"investigational.txt", WORKING_DIRECTORY);
 
         ResultData result = new ResultData(qualityImages, resultOncology, resultNononcology, resultInvestigational);
 
@@ -155,7 +150,7 @@ public class PbqdiService {
         try{
             ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipfile));
             for(String image: qualityImages) {
-                Path path = Paths.get(HTML_LOCATION+image);
+                Path path = Paths.get(WORKING_DIRECTORY+image);
                 if(!path.toFile().exists()) {
                     log.error("image file "+path.toFile()+" not found");
                     continue; 
@@ -209,14 +204,14 @@ public class PbqdiService {
         return pdf;
     }
 
-    private String[] readQualitySection(String workingDirectory, final int jobId) {
+    private String[] readQualitySection(String workingDirectory) {
         List<String> list = new ArrayList<String>();
         BufferedReader br;
         try {
             br = new BufferedReader(new FileReader(workingDirectory + "qc.txt"));
             String line = br.readLine();
             while (line != null) {
-                list.add(convertImage(line, jobId));
+                list.add(convertImage(line, workingDirectory));
                 line = br.readLine();
             }
         } catch (FileNotFoundException e) {
@@ -227,9 +222,9 @@ public class PbqdiService {
         return list.toArray(new String[list.size()]);
     }
 
-    private String convertImage(String pdfFile, final int jobId) {
+    private String convertImage(String pdfFile, final String workingDirectory) {
         String shortName = pdfFile.substring(pdfFile.lastIndexOf("/") + 1, pdfFile.lastIndexOf(".pdf"));
-        String imageFile = "pbqdi_run/"+jobId+"/"+shortName+".png";
+        String imageFile = workingDirectory + shortName+".png";
         String os = System.getProperty("os.name").toLowerCase();
         String command = null;
         if(os.contains("win")) {
@@ -237,7 +232,7 @@ public class PbqdiService {
         } else {
             command = "/usr/bin/convert";
         }
-        ProcessBuilder pb = new ProcessBuilder(command, pdfFile, HTML_LOCATION+imageFile);
+        ProcessBuilder pb = new ProcessBuilder(command, pdfFile, imageFile);
         int exit = -1;
         try {
             Process process = pb.start();
@@ -248,10 +243,10 @@ public class PbqdiService {
         if (exit != 0) {
             log.error("converting image failed: exit value "+exit);
         }
-        return "/"+imageFile;
+        return "./"+shortName+".png";
     }
 
-    private DrugResult readDrugSection(String filename, final int jobId) {
+    private DrugResult readDrugSection(String filename, final String workingDirectory) {
         List<List<String>> images = new ArrayList<List<String>>();
         List<List<IndividualDrugInfo>> drugs = new ArrayList<List<IndividualDrugInfo>>();
 
@@ -291,7 +286,7 @@ public class PbqdiService {
                 } else {
                     switch (fieldId) {
                     case 'I':
-                        img.add(convertImage(line, jobId));
+                        img.add(convertImage(line, workingDirectory));
                         break;
                     case 'N':
                         drugNames.add(line);
@@ -336,7 +331,7 @@ public class PbqdiService {
             pw = new PrintWriter(new FileWriter(htmlFile));
             pw.print(openingHtmlContent);
 
-            pw.print("<div style='position:fixed;background:white;width:100%;z-index:999'><h1>Drug Prediction Report</h1><a href='/cptac/reports/" + reportPdf
+            pw.print("<div style='position:fixed;background:white;width:100%;z-index:999'><h1>Drug Prediction Report</h1><a href='./" + reportPdf
                     + "' target=_blank>Download Full Report as PDF</a> <a href='#dataquality'>Data Quality</a> <a href='#ontology'>Ontology drugs</a> <a href='#nonontology'>Nonontology drugs</a> <a href='#investigational'>Investigational drugs</a></div>");
 
             pw.print("<div style='position:absolute;top:100px'>");
