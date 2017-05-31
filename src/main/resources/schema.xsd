@@ -15,7 +15,6 @@
     <element name="pbqdiResponse">
         <complexType>
             <all>
-                <element name="sampleNames" type="string"/>
                 <element name="tumorType" type="string"/>
                 <element name="classAssignment" type="string"/>
                 <element name="resultPackage" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>

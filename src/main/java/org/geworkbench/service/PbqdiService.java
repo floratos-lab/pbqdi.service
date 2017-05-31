@@ -44,9 +44,6 @@ public class PbqdiService {
     public PbqdiService() {
         Properties prop = new Properties();
         try {
-            // InputStream x = PbqdiService.class.getResourceAsStream("/pbqdi.properties");
-            // System.out.println("x="+x);
-            // prop.load(x);
             prop.load(getClass().getResourceAsStream("/pbqdi.properties"));
         } catch (IOException e) {
             e.printStackTrace();
@@ -155,7 +152,6 @@ public class PbqdiService {
 
         PbqdiResponse response = new PbqdiResponse();
         response.setTumorType(tumorType);
-        response.setSampleNames("THIS_SHOUDLD_BE_A_LIST");
         response.setClassAssignment(classAssignments.toString());
 
         String zipfile = TEMP_DIR+"result"+jobId+".zip";

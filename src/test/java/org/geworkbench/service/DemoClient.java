@@ -73,24 +73,7 @@ public class DemoClient {
         PbqdiResponse response = (PbqdiResponse)template.marshalSendAndReceive(SERVICE_URL, requestElement);
 
         DataHandler resultPackage = response.getResultPackage();
-        /* the following code works perfectly (if we want the zip file itself), 
-            but I want to unzip it directly. */
-        /*
-        try {
-            InputStream inputStream = resultPackage.getInputStream();
 
-            File targetFile = new File(OUTPUT_DIRECTORY+File.separator+"output.zip");
-            OutputStream outStream = new FileOutputStream(targetFile);
-            byte[] buffer = new byte[8 * 1024];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                outStream.write(buffer, 0, bytesRead);
-            }
-            inputStream.close();
-            outStream.close();
-        } catch(IOException e) {
-            e.printStackTrace();
-        }*/
         ZipEntry entry;
         byte[] buffer = new byte[8 * 1024];
 
@@ -117,5 +100,7 @@ public class DemoClient {
         } catch(IOException e) {
             e.printStackTrace();
         }
+
+        System.out.println("result package is unzipped to "+OUTPUT_DIRECTORY+"\nclass assignments are\n"+response.getClassAssignment());
     }
 }

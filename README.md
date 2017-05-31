@@ -9,8 +9,7 @@ This web service provies Patient-Based Query and Data Integration (PBQDI) for th
 
 ## The output contains:
 1. tumor type
-1. sample names
-1. class assignments
+1. class assignments (map from sample names to subtype ID's)
 1. result package as a zipped package
 
 ### This zipped package includes the following entries:
