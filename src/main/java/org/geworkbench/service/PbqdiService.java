@@ -134,10 +134,29 @@ public class PbqdiService {
         ResultData result = new ResultData(qualityImages, resultOncology, resultNononcology, resultInvestigational,
             reportPdf, htmlReport, WORKING_DIRECTORY);
 
+        if(! new File(WORKING_DIRECTORY + "classAssignments.txt").exists()) { // debug
+            log.debug(new File(WORKING_DIRECTORY + "classAssignments.txt").getAbsolutePath()+" does not exists");
+        }
+        StringBuffer classAssignments = new StringBuffer();
+        BufferedReader br;
+        try {
+            br = new BufferedReader(new FileReader(WORKING_DIRECTORY + "classAssignments.txt"));
+            String line = br.readLine();
+            while (line != null && line.trim().length() > 0) {
+                classAssignments.append(line).append('\n');
+                line = br.readLine();
+            }
+            br.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         PbqdiResponse response = new PbqdiResponse();
         response.setTumorType(tumorType);
         response.setSampleNames("THIS_SHOUDLD_BE_A_LIST");
-        response.setClassAssignment("THIS_SHOUDLD_BE_A_MAP");
+        response.setClassAssignment(classAssignments.toString());
 
         String zipfile = TEMP_DIR+"result"+jobId+".zip";
         try{
