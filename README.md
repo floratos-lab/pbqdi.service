@@ -37,6 +37,7 @@ due to copyright difference:
 
 * R version needs to be 3.3 or later
 * 5 local packages need to be copied to the R library directory (specific location depending on your R installation). Their names are clinicalTrials, drugbank, n1database, n1platform, and tth. The actual code is not open-sourced.
+  * Biobase: used by n1platform. (no longer avaiable in public repository?)
 
 ## Clients:
 
