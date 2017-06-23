@@ -37,7 +37,7 @@ due to copyright difference:
 
 * R version needs to be 3.3 or later
 * 5 local packages need to be copied to the R library directory (specific location depending on your R installation). Their names are clinicalTrials, drugbank, n1database, n1platform, and tth. The actual code is not open-sourced.
-  * Biobase: used by n1platform. It is not avaiable in the public repository. To install, see https://bioconductor.org/packages/release/bioc/html/Biobase.html
+  * Biobase: used by n1platform. It is not avaiable in the public repository. To install, see https://bioconductor.org/packages/release/bioc/html/Biobase.html (No everything works forthrightly from this site. I ended up fiddling around more with BioInstaller to get it work on Linux.)
 
 ## Clients:
 
