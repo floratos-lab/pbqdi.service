@@ -70,6 +70,7 @@ public class PbqdiService {
                 WORKING_DIRECTORY + "classifySamples.r", tumorType, sampleFile, WORKING_DIRECTORY, ERROR_FILE);
         pb1.directory(new File(WORKING_DIRECTORY));
         try {
+            log.debug("executing classifySamples.r");
             Process process = pb1.start();
             if (log.isDebugEnabled()) {
                 InputStream stream = process.getErrorStream();
@@ -80,6 +81,7 @@ public class PbqdiService {
                 }
             }
             int exit = process.waitFor();
+            log.debug("end of classifySamples.r");
             if (exit != 0) {
                 log.error("something went wrong with classification script: exit value " + exit);
                 return null;
@@ -89,12 +91,13 @@ public class PbqdiService {
             return null;
         }
 
-        ProcessBuilder pb2 = new ProcessBuilder(R_PATH + "rscript", "--vanilla",
+        ProcessBuilder pb2 = new ProcessBuilder(R_PATH + "Rscript", "--vanilla",
                 WORKING_DIRECTORY + "rununsupervised.r", tumorType, sampleFile, WORKING_DIRECTORY, ERROR_FILE);
         pb2.directory(new File(WORKING_DIRECTORY));
 
         String reportFilename = null;
         try {
+            log.debug("executing rununsupervised.r");
             Process process = pb2.start();
             if (log.isDebugEnabled()) {
                 InputStream stream = process.getErrorStream();
@@ -105,6 +108,7 @@ public class PbqdiService {
                 }
             }
             int exit = process.waitFor();
+            log.debug("end of rununsupervised.r");
             reportFilename = readPdfFileName(WORKING_DIRECTORY);
             if (exit != 0) {
                 log.error("something went wrong with drug report script: exit value " + exit);
